@@ -4,7 +4,7 @@
 
 MedCompare is a web application that helps users find the best prices for their medications by comparing them across multiple online pharmacies in real time. Enter a medicine name, and MedCompare fetches and displays prices with easy-to-read visual charts so you can quickly spot the cheapest option.
 
-🔗 **Live Demo:** [medcompare.netlify.app](https://medcompare.netlify.app)
+🔗 **Live Demo:** [magenta-shortbread-4e4384.netlify.app](https://magenta-shortbread-4e4384.netlify.app/)
 
 ---
 
@@ -46,8 +46,9 @@ Medcompare/
 - **JavaScript (Vanilla)** — Interactivity and data fetching
 - **Chart.js** + `chartjs-plugin-zoom` + `Hammer.js` — Price visualizations
 - **Font Awesome** — Icons
-- **Backend API** — Prices are fetched from a scraping service:
-  `https://medcompare-backend-189015579943.us-central1.run.app/api/scrape`
+- **Backend API** — A lightweight Flask service hosted on Render:
+  `https://medcompare-backend-wja7.onrender.com/api/scrape`
+  (source: [medcompare-backend](https://github.com/Anoop1230-tech/medcompare-backend))
 
 ---
 
