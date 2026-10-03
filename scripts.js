@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 100);
         
         try {
-            const response = await fetch('https://medcompare-backend-189015579943.us-central1.run.app/api/scrape', { // Updated URL here
+            const response = await fetch('https://medcompare-backend-wja7.onrender.com/api/scrape', { // Updated URL here
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query })
