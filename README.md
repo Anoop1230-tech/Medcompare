@@ -90,8 +90,8 @@ npx http-server -p 8000
 
 ## 📬 Contact
 
-- **Email:** su-24143@sitare.org
-- **Phone:** +91 8738902909
+- **Email:** su-24017@sitare.org
+- **Phone:** +91 9519612956
 
 ---
 
