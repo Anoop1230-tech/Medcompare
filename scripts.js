@@ -10,13 +10,15 @@ document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.setAttribute('data-theme', savedTheme);
     
     // Toggle theme when button is clicked
-    themeToggle.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-    });
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+    }
     
     // Add event listener to "Start Saving Now" button to scroll to search section
     const startSavingBtn = document.querySelector('.hero-content .btn-primary');
@@ -33,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchForm = document.getElementById('search-form');
 
     if (!searchBtn || !searchInput || !scraperResults || !searchForm) {
-        console.error('Search button, input, results container, or form not found:', { searchBtn, searchInput, scraperResults, searchForm });
+        // Not the home page (no search UI here) — nothing more to initialize.
         return;
     }
 
