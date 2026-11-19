@@ -473,19 +473,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Group by medicine name and unit type
-        const medicineGroups = {};
-        unitPriceData.forEach(item => {
-            const key = `${item.medicine}-${item.unitType}`;
-            if (!medicineGroups[key]) {
-                medicineGroups[key] = [];
-            }
-            medicineGroups[key].push(item);
-        });
-        
-        // Prepare data for the chart
-        const labels = [];
-        const datasets = [];
+        // Group the same product across pharmacies (names differ per site)
+        const { labels, datasets: rawDatasets } = buildPerUnitComparison(unitPriceData, Object.keys(results));
         
         // Colors for different websites
         const colors = {
@@ -495,58 +484,12 @@ document.addEventListener('DOMContentLoaded', () => {
             'Apollo Pharmacy': 'rgba(37, 99, 235, 0.7)'    // Blue
         };
         
-        // Create datasets by website
-        const websiteData = {};
-        
-        Object.entries(medicineGroups).forEach(([key, items]) => {
-            const [medicine, unitType] = key.split('-');
-            const label = `${medicine} (per ${unitType})`;
-            labels.push(label);
-            
-            // Calculate min and max prices for this medicine
-            let minPrice = Infinity;
-            
-            items.forEach(item => {
-                if (item.pricePerUnit < minPrice) {
-                    minPrice = item.pricePerUnit;
-                }
-            });
-            
-            items.forEach(item => {
-                if (!websiteData[item.website]) {
-                    websiteData[item.website] = {
-                        label: item.website,
-                        data: Array(labels.length - 1).fill(null),
-                        backgroundColor: colors[item.website] || 'rgba(156, 163, 175, 0.7)',
-                        borderColor: (colors[item.website] || 'rgba(156, 163, 175, 0.7)').replace('0.7', '1'),
-                        borderWidth: 1,
-                        // Add this to highlight the best value
-                        borderDash: []
-                    };
-                }
-                
-                // Add data for this medicine
-                const dataPoint = parseFloat(item.pricePerUnit.toFixed(2));
-                websiteData[item.website].data.push(dataPoint);
-                
-                // Highlight the best value with a different border
-                if (item.pricePerUnit === minPrice) {
-                    const dataIndex = websiteData[item.website].data.length - 1;
-                    if (!websiteData[item.website].bestValueIndexes) {
-                        websiteData[item.website].bestValueIndexes = [];
-                    }
-                    websiteData[item.website].bestValueIndexes.push(dataIndex);
-                }
-                
-                // Fill in nulls for other medicines
-                while (websiteData[item.website].data.length < labels.length) {
-                    websiteData[item.website].data.push(null);
-                }
-            });
-        });
-        
-        // Convert websiteData to array of datasets
-        datasets.push(...Object.values(websiteData));
+        const datasets = rawDatasets.map(ds => ({
+            ...ds,
+            backgroundColor: colors[ds.label] || 'rgba(156, 163, 175, 0.7)',
+            borderColor: (colors[ds.label] || 'rgba(156, 163, 175, 0.7)').replace('0.7', '1'),
+            borderWidth: 1
+        }));
         
         // Find the maximum value for y-axis scaling
         let maxValue = 0;
@@ -875,11 +818,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const patterns = [
             { regex: /(\d+)\s*tablets?/i, unitType: 'tablet' },
             { regex: /(\d+)\s*capsules?/i, unitType: 'capsule' },
-            { regex: /(\d+)\s*ml/i, unitType: 'ml' },
-            { regex: /(\d+)\s*l/i, unitType: 'liter', multiplier: 1000 },
-            { regex: /(\d+)\s*g/i, unitType: 'gram' },
-            { regex: /(\d+)\s*mg/i, unitType: 'mg', divisor: 1000 },
-            { regex: /(\d+)\s*strips?/i, unitType: 'strip' }
+            { regex: /(\d+)\s*ml\b/i, unitType: 'ml' },
+            { regex: /(\d+)\s*l\b/i, unitType: 'liter', multiplier: 1000 },
+            { regex: /(\d+)\s*g\b/i, unitType: 'gram' },
+            { regex: /(\d+)\s*mg\b/i, unitType: 'mg', divisor: 1000 },
+            { regex: /(\d+)\s*strips?/i, unitType: 'strip' },
+            // 1mg reports pack size as "15 units"; use the name to tell tablets from capsules
+            { regex: /(\d+)\s*units?\b/i, unitType: 'unit' }
         ];
         
         for (const pattern of patterns) {
@@ -895,15 +840,112 @@ document.addEventListener('DOMContentLoaded', () => {
                     units /= pattern.divisor;
                 }
                 
+                let unitType = pattern.unitType;
+                if (unitType === 'unit') {
+                    const lname = (medicineName || '').toLowerCase();
+                    if (/\bcapsules?\b/.test(lname)) unitType = 'capsule';
+                    else if (/\btablets?\b/.test(lname)) unitType = 'tablet';
+                }
+                
                 return {
                     success: true,
                     units: units,
-                    unitType: pattern.unitType
+                    unitType: unitType
                 };
             }
         }
         
         return { success: false };
+    }
+
+    // Words that describe packaging/form rather than which product it is
+    const NAME_STOPWORDS = new Set([
+        'tablet', 'tablets', 'tab', 'tabs', 'capsule', 'capsules', 'cap', 'caps',
+        'syrup', 'suspension', 'strip', 'strips', 'bottle', 'tube', 'box', 'pack',
+        'of', 'in', 's', 'and', 'with', 'for', 'the'
+    ]);
+
+    // Reduce a product name to the tokens that identify the product, keeping
+    // strength (650) and pack size (150ml, 100g) but dropping counts and filler.
+    // e.g. "Dolo 650Mg Strip Of 15 Tablets" and "Dolo-650 Tablet 15's" -> ["650", "dolo"]
+    function comparisonTokens(name) {
+        let n = (name || '').toLowerCase();
+        n = n.replace(/\([^)]*\)/g, ' ');                                   // "(Azithromycin)"
+        n = n.replace(/[|,\-\/+&]/g, ' ');
+        n = n.replace(/\b(\d+(?:\.\d+)?)\s*(ml|ltr|l)\b/g, ' $1ml ');       // "150 ml" -> "150ml"
+        n = n.replace(/\b(\d+(?:\.\d+)?)\s*(gm|gms|g)\b/g, ' $1g ');        // "100 Gm" -> "100g"
+        n = n.replace(/\b(\d+(?:\.\d+)?)\s*(mg|mcg)\b/g, ' $1 ');           // strength: "650mg" -> "650"
+        n = n.replace(/\bof\s+\d+\s*(tablets?|capsules?|pastilles?|lozenges?|sachets?)\b/g, ' ');  // "of 15 tablets"
+        n = n.replace(/\b\d+\s*['\u2019]s\b/g, ' ');                        // "15's"
+        n = n.replace(/\b\d+\s*count\b/g, ' ');                             // "10 count"
+        n = n.replace(/\b\d+\s*x\s*/g, ' ');                                // "10x1g" -> "1g"
+        const tokens = n.split(/[^a-z0-9.]+/).filter(t => t && !NAME_STOPWORDS.has(t));
+        return [...new Set(tokens)].sort();
+    }
+
+    // Same product if the identifying tokens are equal, or one name is the other
+    // plus at most 2 extra words (e.g. "Azithral 500" vs "Azithral 500 Azithromycin")
+    // and they share a strength or size number
+    function tokensMatch(a, b) {
+        if (a.join(' ') === b.join(' ')) return true;
+        const [small, big] = a.length <= b.length ? [a, b] : [b, a];
+        if (small.length < 2 || big.length - small.length > 2) return false;
+        if (!small.some(t => /^\d/.test(t))) return false;
+        const bigSet = new Set(big);
+        return small.every(t => bigSet.has(t));
+    }
+
+    // Build chart rows: one row per product, one bar per pharmacy. Rows available
+    // at more pharmacies are listed first.
+    function buildPerUnitComparison(unitPriceData, websiteOrder) {
+        const groups = [];
+        unitPriceData.forEach(item => {
+            const tokens = comparisonTokens(item.medicine);
+            const key = tokens.join(' ');
+            const sameUnit = groups.filter(g => g.unitType === item.unitType);
+            // Prefer an exact name match; fall back to a "more detailed name" match
+            let group = sameUnit.find(g => g.key === key) ||
+                        sameUnit.find(g => tokensMatch(g.tokens, tokens));
+            if (!group) {
+                group = { tokens, key, unitType: item.unitType, items: [] };
+                groups.push(group);
+            }
+            group.items.push({ ...item, tokens });
+        });
+        
+        // Per pharmacy, show the product whose name is closest to the row's
+        // product (fewest extra/missing words); break ties by lower price.
+        const distance = (a, b) => {
+            const sa = new Set(a), sb = new Set(b);
+            return a.filter(t => !sb.has(t)).length + b.filter(t => !sa.has(t)).length;
+        };
+        groups.forEach(g => {
+            g.best = {};
+            g.items.forEach(it => {
+                const cur = g.best[it.website];
+                const d = distance(it.tokens, g.tokens);
+                if (!cur || d < cur.d || (d === cur.d && it.pricePerUnit < cur.item.pricePerUnit)) {
+                    g.best[it.website] = { item: it, d };
+                }
+            });
+            Object.keys(g.best).forEach(w => { g.best[w] = g.best[w].item; });
+            g.pharmacyCount = Object.keys(g.best).length;
+        });
+        groups.sort((a, b) => b.pharmacyCount - a.pharmacyCount);  // stable: keeps search order otherwise
+        
+        const labels = groups.map(g => {
+            const shown = Object.values(g.best);
+            const shortest = shown.reduce((s, it) => it.medicine.length < s.length ? it.medicine : s, shown[0].medicine);
+            return `${shortest} (per ${g.unitType})`;
+        });
+        
+        const websites = (websiteOrder || []).filter(w => groups.some(g => g.best[w]));
+        const datasets = websites.map(w => ({
+            label: w,
+            data: groups.map(g => g.best[w] ? parseFloat(g.best[w].pricePerUnit.toFixed(2)) : null)
+        }));
+        
+        return { labels, datasets, groups };
     }
 
     let debounceTimer;
