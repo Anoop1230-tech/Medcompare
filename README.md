@@ -97,7 +97,7 @@ npx http-server -p 8000
 
 1. The user enters a medicine name in the search box on the home page.
 2. `scripts.js` sends the query to the backend API (`POST /api/scrape`).
-3. The backend searches Tata 1mg, PharmEasy, Netmeds and Apollo Pharmacy at the same time and returns a list of matching products from each, with name, quantity, price and link. If one pharmacy is slow or down, the others are still shown.
+3. The backend searches Tata 1mg, PharmEasy, Netmeds and Apollo Pharmacy at the same time and returns up to 10 matching products from each, with name, quantity, price and link. If one pharmacy is slow or down, the others are still shown.
 4. Results are rendered as cards in a separate section for each pharmacy and plotted on an interactive price-per-unit chart.
 5. A savings summary highlights the best available price.
 
