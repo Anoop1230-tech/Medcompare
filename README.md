@@ -1,17 +1,32 @@
 # 💊 MedCompare
 
-**Save on medicines by comparing prices across different online pharmacies.**
+**Save on medicines by comparing prices across India's top online pharmacies: Tata 1mg, PharmEasy, Netmeds and Apollo Pharmacy.**
 
-MedCompare is a web application that helps users find the best prices for their medications by comparing them across multiple online pharmacies in real time. Enter a medicine name, and MedCompare fetches and displays prices with easy-to-read visual charts so you can quickly spot the cheapest option.
+MedCompare is a web application that helps users find the best prices for their medications by comparing them across 4 online pharmacies in real time. Enter a medicine name, and MedCompare fetches live prices with easy-to-read visual charts so you can quickly spot the cheapest option.
 
 🔗 **Live Demo:** [magenta-shortbread-4e4384.netlify.app](https://magenta-shortbread-4e4384.netlify.app/)
 
 ---
 
+## 🏥 Supported Pharmacies
+
+| Pharmacy | Chart color | Data |
+|---|---|---|
+| **Tata 1mg** | 🟢 Green | Live prices |
+| **PharmEasy** | 🟣 Purple | Live prices |
+| **Netmeds** | 🔴 Red | Live prices |
+| **Apollo Pharmacy** | 🔵 Blue | Live prices |
+
+For every product, MedCompare shows the **medicine name, pack size/quantity, current selling price and a direct link** to the product page on the pharmacy's website.
+
+> **MedPlus** is not supported: its website blocks all automated requests.
+
+---
+
 ## ✨ Features
 
-- **Instant Price Comparison** — Compare medicine prices across multiple online pharmacies in seconds.
-- **Visual Price Charts** — Interactive charts (powered by Chart.js) with zoom and pan support to visualize price differences.
+- **Instant Price Comparison** — Compare live medicine prices from Tata 1mg, PharmEasy, Netmeds and Apollo Pharmacy in a few seconds.
+- **Visual Price Charts** — Interactive price-per-unit charts (powered by Chart.js) with zoom and pan support, with a separate color for each pharmacy.
 - **Best Price Finder** — Automatically highlights the lowest price and estimated savings.
 - **Dark / Light Mode** — Theme toggle with preference saved in the browser (`localStorage`).
 - **Responsive Design** — Works across desktop, tablet, and mobile.
@@ -46,7 +61,7 @@ Medcompare/
 - **JavaScript (Vanilla)** — Interactivity and data fetching
 - **Chart.js** + `chartjs-plugin-zoom` + `Hammer.js` — Price visualizations
 - **Font Awesome** — Icons
-- **Backend API** — A lightweight Flask service hosted on Render:
+- **Backend API** — A lightweight Flask service hosted on Render that fetches live prices from all 4 pharmacies in parallel:
   `https://medcompare-backend-wja7.onrender.com/api/scrape`
   (source: [medcompare-backend](https://github.com/Anoop1230-tech/medcompare-backend))
 
@@ -81,10 +96,27 @@ npx http-server -p 8000
 ## 📖 How It Works
 
 1. The user enters a medicine name in the search box on the home page.
-2. `scripts.js` sends the query to the backend scraping API.
-3. The API returns prices from various online pharmacies.
-4. Results are rendered as cards and plotted on an interactive price-per-unit chart.
+2. `scripts.js` sends the query to the backend API (`POST /api/scrape`).
+3. The backend searches Tata 1mg, PharmEasy, Netmeds and Apollo Pharmacy at the same time and returns a list of matching products from each, with name, quantity, price and link. If one pharmacy is slow or down, the others are still shown.
+4. Results are rendered as cards in a separate section for each pharmacy and plotted on an interactive price-per-unit chart.
 5. A savings summary highlights the best available price.
+
+### Example response
+```json
+{
+  "1mg (Tata)":      [{ "number": 1, "medicine": "Dolo 650 Tablet", "quantity": "15 units", "price": "₹29.7", "link": "https://www.1mg.com/drugs/..." }],
+  "PharmEasy":       [{ "number": 1, "medicine": "Dolo 650Mg Strip Of 15 Tablets", "quantity": "15 Tablet(s) in Strip", "price": "₹29.37", "link": "https://pharmeasy.in/..." }],
+  "Netmeds":         [{ "number": 1, "medicine": "Dolo 650 Tablet 15's", "quantity": "15 Tablet(s) in Strip", "price": "₹25.18", "link": "https://www.netmeds.com/product/..." }],
+  "Apollo Pharmacy": [{ "number": 1, "medicine": "Dolo-650 Tablet 15's", "quantity": "15 Tablet(s)", "price": "₹32.0", "link": "https://www.apollopharmacy.in/otc/..." }]
+}
+```
+
+---
+
+## ➕ Adding Another Pharmacy
+
+1. In [medcompare-backend](https://github.com/Anoop1230-tech/medcompare-backend), add a `fetch_<name>()` function to `app.py` and register it in the `SOURCES` dict. The front-end shows a new results section for it automatically.
+2. In this repo, add a chart color for the same pharmacy name to the `colors` map in `scripts.js` (it appears twice).
 
 ---
 
