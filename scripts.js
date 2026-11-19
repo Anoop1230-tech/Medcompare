@@ -357,9 +357,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Colors for different websites
         const colors = {
-            'Apollo': 'rgba(37, 99, 235, 0.7)',   // Blue
-            'Netmeds': 'rgba(220, 38, 38, 0.7)',    // Red
-            '1mg': 'rgba(5, 150, 105, 0.7)'         // Green
+            '1mg (Tata)': 'rgba(5, 150, 105, 0.7)',        // Green
+            'PharmEasy': 'rgba(124, 58, 237, 0.7)',        // Purple
+            'Netmeds': 'rgba(220, 38, 38, 0.7)',           // Red
+            'Apollo Pharmacy': 'rgba(37, 99, 235, 0.7)'    // Blue
         };
         
         // Create a dataset for each website
@@ -488,9 +489,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Colors for different websites
         const colors = {
-            'Apollo': 'rgba(37, 99, 235, 0.7)',   // Blue
-            'Netmeds': 'rgba(220, 38, 38, 0.7)',    // Red
-            '1mg': 'rgba(5, 150, 105, 0.7)'         // Green
+            '1mg (Tata)': 'rgba(5, 150, 105, 0.7)',        // Green
+            'PharmEasy': 'rgba(124, 58, 237, 0.7)',        // Purple
+            'Netmeds': 'rgba(220, 38, 38, 0.7)',           // Red
+            'Apollo Pharmacy': 'rgba(37, 99, 235, 0.7)'    // Blue
         };
         
         // Create datasets by website
